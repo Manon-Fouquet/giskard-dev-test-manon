@@ -78,6 +78,49 @@ const check_empire_data=data=>{
 const build_graph = ()=>{
     //https://github.com/visjs/vis-network
     console.log("Building map")
+    var nodes = new vis.DataSet([
+        { id: 1, label: "Tatooine",color: {
+            border: "green",
+            background: "blue",
+          } },
+        { id: 2, label: "Dagobah" },
+        { id: 3, label: "Endor" }
+      ]);
+
+      // create an array with edges
+      var edges = new vis.DataSet([
+        { from: 1, to: 2 ,width: 1, title: "4"},
+        { from: 2, to: 3 ,width: 1, title: "1"}
+      ]);
+
+      // create a network
+      var container = document.getElementById("universe-graph");
+      var data = {
+        nodes: nodes,
+        edges: edges,
+      };
+      var options = {
+        nodes: {
+            shape: "dot",
+            scaling: {
+              label: {
+                min: 8,
+                max: 20,
+              }
+            },
+            borderWidth: 4,
+            size: 20,
+            color: {
+                border: "#222222",
+                background: "#666666",
+            },
+            font: { color: "#eeeeee" }
+          },
+        edges: {
+        color: "lightgray",
+        }
+      };
+      var network = new vis.Network(container, data, options);
 }
 
 
