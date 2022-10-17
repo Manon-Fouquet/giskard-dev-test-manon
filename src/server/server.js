@@ -1,10 +1,6 @@
 // Millenium Falcon infos. Loaded from millennium-falcon.json
-var rebelsData = {
-    "autonomy": 6,
-    "departure": "Tatooine",
-    "arrival": "Endor",
-    "routes_db": "universe.db"
-  }
+var rebelsData = null
+var rebelsDataLoaded = true
 
 // Bounty-hunters infos. Loaded from empire.json
 var empireData = {
@@ -19,13 +15,8 @@ const port = 8089
 
 const path = require('path')
 
-
 // Require Express to run server and routes
 const express = require('express')
-
-// To be able to fetch external API from server side
-// NOT NEEDEDD IN THIS PROJECT
-//const fetch = require('node-fetch');
 
 //Parse incoming request bodies in a middleware before handlers
 var bodyParser = require('body-parser')
@@ -37,8 +28,7 @@ var cors = require('cors')
 const{http, https} = require('follow-redirects');
 
 //File I/O is provided by simple wrappers 
-// NOT NEEDED HERE
-//var fs = require('fs');
+var fs = require('fs');
 
 // Start up an instance of app
 const app = express()
@@ -56,7 +46,25 @@ app.use(express.static('dist'))
 
 // Load environment variables, especially API keys
 const dotenv = require('dotenv');
+const { json } = require('body-parser')
 dotenv.config();
+
+const rebelsFile = path.join(process.cwd(), process.env.FOLDER,"millennium-falcon.json")
+console.log("Rebels file = "+rebelsFile)
+
+fs.readFile(rebelsFile, function (err, data) {
+    if (err) {
+      throw err;
+    }
+    rebelsData = JSON.parse(data)
+    if (rebelsData && rebelsData.departure && rebelsData.arrival && rebelsData.routes_db && rebelsData.autonomy){
+        console.log("Rebels data loaded, Millennium Falcon currently at "+rebelsData.departure+" has "+rebelsData.autonomy+" days left to reach "+rebelsData.arrival)
+        rebelsDataLoaded = true
+    }else{
+        console.log("Failed loading Millennium Falcon data.")
+    }
+});
+
 
 app.listen(port, function () {
     console.log('Example app listening on port '+port+'!')
