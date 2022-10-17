@@ -1,0 +1,164 @@
+// Star Wars colors
+$black:      rgb(0, 0, 0);
+$darkIndigo: rgb(23,24,41);
+$darkGrey:   rgb(56,57,88);
+$grey:       rgb(108,110,133);
+$lightGrey:  rgb(167,167, 183);
+$brown:      rgb(64,32,21);
+$lightBrown: rgb(168,120,80);
+$green:      rgb(54,214,0);
+$transparent: 0;
+
+// Element heights - large
+$loaderHeight:2em;
+$topPanelHeight:300px;
+
+html, body div {
+    width: 100%;
+    height: 100%;
+    background: black;
+    margin: 0px;
+    padding: 0px;
+    overflow: hidden; // no-scroll
+    justify-content: center;
+    color: white;
+    font-family: 'Cinzel', serif;
+}
+
+input, button, select, textarea, optgroup, option {
+    font-family: inherit;
+    font-size: inherit;
+    font-style: inherit;
+    font-weight: inherit;
+}
+
+div{
+    position: relative;
+}
+
+.container{
+    //center items
+    display: flex;
+    flex-direction: column;
+    justify-self: center;
+    width:80%;
+    margin: 0 auto;
+    padding: 0px;
+    align-items: center;   
+}
+
+.control-panel{
+    display:grid;
+    width:100%;
+    grid-template-areas: 
+        "map spy"
+        ;
+    padding-bottom:10px;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: $topPanelHeight;
+}
+        
+.universe-map{
+    grid-area:"map";
+    background-color: $darkIndigo;
+    width:100%;
+}
+
+.spy-panel{
+    grid-area:"spy";
+    background-color: $darkGrey;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items:center;
+}
+
+#div-empire-file{
+    background-color: $darkGrey;
+    height: fit-content;
+    margin-top: 1em ;
+    #empire-file-loader{
+        position:   absolute;
+        width: 100%;
+        height:$loaderHeight;
+        opacity         : $transparent; /* pour !IE */
+        filter          : alpha(opacity=$transparent); /* pour IE */
+        right           : 0;
+        top             : 0;
+    }
+
+    .fake-file-loader{
+        background-color: $grey;
+        text-align: center;
+        height:$loaderHeight;
+        border-radius: 5px;
+        width: 80%;
+        margin: 0 auto;
+    }
+}
+
+#empire-file-name{
+    background-color: $darkGrey;
+    text-align: center;
+    height: 100px;
+    width: 50%;
+    color:$green;
+    width: 100%;
+    height:3em;
+}
+
+#empire-data{
+    height:0.5*$topPanelHeight;
+    background-color: $black;
+    width: 80%;
+    margin-bottom:1em ;
+}
+
+#compute-button{
+    width:100%;
+    
+    -webkit-border-radius: 5px;
+    border-radius: 5px;  
+    margin-top: 1em;
+}
+  
+#compute-button:enabled{
+    background-color: $lightBrown;  
+}
+#compute-button:disabled{
+    background-color: $darkGrey;  
+}
+.survival-container{
+    width:100%;
+    height:150px;
+    background-color: $lightBrown;
+    margin:1em;
+    .survival-bar{
+        height: 100%;
+        background-color: $darkIndigo;
+        padding:1em;
+        justify-content: center;
+    }
+}
+
+.footer{
+    grid-area: "survival";
+    width:100%;
+    text-align: center;
+    margin: 1em;    
+    a :hover{
+        color: yellow;
+    }
+
+    a:visited{
+        color: white;
+    }
+}
+
+
+.star {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    background-color: white;
+  }

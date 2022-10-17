@@ -1,0 +1,38 @@
+<!DOCTYPE html> 
+<html> 
+    <head> 
+        <meta charset="utf-8" /> 
+        <title>Millennium Falcon</title> 
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" /> 
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cinzel&display=swap');
+        </style> 
+    </head> 
+    <body onload="return Client.build_graph()"> 
+      <div class="container">
+          <div class="control-panel">
+            <div class="universe-map">
+              <div id="universe-graph"></div>
+            </div>
+            
+            <div class="spy-panel">
+                <h1>Empire watcher</h1>
+                <div id="div-empire-file"> 
+                  <div class="fake-file-loader">Load empire file</div>
+                  <input type="file" id="empire-file-loader" name="Empire file" accept=".json" onmousedown="return false" onkeydown="return false" onchange="return Client.empireLoader(event)"/>
+                </div>
+                <div id="empire-file-name"></div>
+                <div id="empire-data"></div>
+            </div>
+          </div>
+          <button id="compute-button"  type = "submit" onclick = "return Client.handleSubmit(event)">Compute capture probability</button>
+          <div class="survival-container">
+            <div class="survival-bar"> </div>
+          </div>
+ 
+          <div class="footer">
+            Problem statement can be found on <a href="https://github.com/lioncowlionant/developer-test">GitHub</a>
+          </div>
+      </div>    
+  </body> 
+</html> 
