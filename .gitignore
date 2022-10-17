@@ -1,0 +1,10 @@
+# Ignored folders
+dist
+node_modules
+other
+
+# Ignored file type
+*.zip
+
+# Avoids pushing the API keys
+.env
