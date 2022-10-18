@@ -1,6 +1,5 @@
 // Millenium Falcon infos. Loaded from millennium-falcon.json
 var rebelsData = null
-var rebelsDataLoaded = true
 
 // Bounty-hunters infos. Loaded from empire.json
 var empireData = {
@@ -10,6 +9,11 @@ var empireData = {
         {"planet": "Dagobah", "day": 5 }
         ]
     }
+var universeMap={}
+universeMap.nodes = []
+universeMap.edges = []
+
+var planets=[]
 
 const port = 8089
 
@@ -19,16 +23,17 @@ const path = require('path')
 const express = require('express')
 
 //Parse incoming request bodies in a middleware before handlers
-var bodyParser = require('body-parser')
+const bodyParser = require('body-parser')
 
 // Cors for cross origin allowance
-var cors = require('cors')
+const cors = require('cors')
 
 //provides request and get methods that behave identically to those found on the native http and https modules
 const{http, https} = require('follow-redirects');
 
 //File I/O is provided by simple wrappers 
-var fs = require('fs');
+const fs = require('fs');
+
 
 // Start up an instance of app
 const app = express()
@@ -44,6 +49,7 @@ app.use(bodyParser.json());
 app.use(express.static('dist'))
 
 
+const sqlite3 = require('sqlite3')
 // Load environment variables, especially API keys
 const dotenv = require('dotenv');
 const { json } = require('body-parser')
@@ -59,7 +65,55 @@ fs.readFile(rebelsFile, function (err, data) {
     rebelsData = JSON.parse(data)
     if (rebelsData && rebelsData.departure && rebelsData.arrival && rebelsData.routes_db && rebelsData.autonomy){
         console.log("Rebels data loaded, Millennium Falcon currently at "+rebelsData.departure+" has "+rebelsData.autonomy+" days left to reach "+rebelsData.arrival)
-        rebelsDataLoaded = true
+        
+        const universeDBFile = path.join(process.cwd(), process.env.FOLDER, rebelsData.routes_db)
+        console.log("Loading routes from "+universeDBFile)
+        let db = new sqlite3.Database(universeDBFile, (err) => {
+            if (err) {
+                console.error(err.message);
+            }
+                console.log('Connexion to route mapper...OK!');
+
+            });
+        
+        db.serialize(() => {
+            
+            db.each(`SELECT ORIGIN as o, DESTINATION as d, TRAVEL_TIME as t
+                    FROM ROUTES`, (err, row) => {
+            if (err) {
+                console.error(err.message);
+            }
+            var o = row.o
+            var d = row.d
+            var t = row.t
+
+            universeMap.edges.push({ from: o, to: d ,width: 1, title: t});
+            
+            if(!planets.includes(o)){
+                planets.push(o)
+                if(o==rebelsData.departure){
+                    universeMap.nodes.push({id:o, label:o, color:{border:"green",background:"blue"}})
+                }else if(o==rebelsData.arrival){
+                    universeMap.nodes.push({id:o, label:o, color:{border:"brown",background:"red"}})
+                }else{
+                    universeMap.nodes.push({id:planets.length, label:o})
+                }
+            }
+            
+            if(!planets.includes(d)){
+                planets.push(d)
+                if(d==rebelsData.departure){
+                    universeMap.nodes.push({id:d, label:d, color:{border:"green",background:"blue"}})
+                }else if(d==rebelsData.arrival){
+                    universeMap.nodes.push({id:d, label:d, color:{border:"brown",background:"red"}})
+                }else{
+                    universeMap.nodes.push({id:d, label:d})
+                }
+            }
+            console.log("Distance "+o + " - " + d+" \t= "+t);
+            })
+        }
+        );
     }else{
         console.log("Failed loading Millennium Falcon data.")
     }
@@ -69,6 +123,7 @@ fs.readFile(rebelsFile, function (err, data) {
 app.listen(port, function () {
     console.log('Example app listening on port '+port+'!')
 })
+
 
 
 app.post('/loadEmpireData', async function (req, res) {
@@ -94,6 +149,15 @@ app.post('/loadEmpireData', async function (req, res) {
     }
 })
 
+app.get('/loadMap', async function (req, res) {
+    try{
+        res.send(universeMap)  
+        console.log("Universe map uploaded");
+    }catch(error){   
+        console.log("Error when loading universe map");  
+        res.send({'error':""+error})
+    }
+})
 
 app.get('/computeCaptureProba' , async function (req, res){
     return 42.42
