@@ -3,23 +3,18 @@ import './javascript/stars.js'
 
 const reader = new FileReader();
 var empire_data=null
+var debug = false
 
-/* STUB GRAPH DATA
-    graph_data.nodes = [
-        { id: 1, label: "Tatooine",color: {
-            border: "green",
-            background: "blue",
-          } },
-        { id: 2, label: "Dagobah" },
-        { id: 3, label: "Endor" }
-      ];
+// HTML elements
+const empireDisplay = document.getElementById('empire-data')
+const button =  document.getElementById("compute-button")
+const success = document.getElementById('success-proba')
+const bestPath = document.getElementById('best-path')
+const fileLoadedName = document.getElementById('empire-file-name')
 
-      // create an array with edges
-      graph_data.edges = [
-        { from: 1, to: 2 ,width: 1, title: "4"},
-        { from: 2, to: 3 ,width: 1, title: "1"}
-      ];
-*/
+
+// No probability computed if empire data not loaded
+button.disabled = true
 
 
 const empireLoader = (event)=>{
@@ -54,7 +49,7 @@ const empireLoader = (event)=>{
                         }
                         
                     }); 
-                    document.getElementById('empire-file-name').textContent = file.name +" loaded"
+                    fileLoadedName.textContent = file.name +" loaded"
     
             }else{
                 console.log("Error while loading empire data, check json format.")
@@ -66,24 +61,34 @@ const empireLoader = (event)=>{
 };
 
 const displayEmpireData = data=>{
-    const empireDisplay = document.getElementById('empire-data')
+    
+
     while (empireDisplay.firstChild) {
         empireDisplay.removeChild(empireDisplay.lastChild);
     }
 
-    console.log("Loading empire data")
-    const empireCountDown = document.createElement('div');
-    empireCountDown.setAttribute('class','empire-val');
-    empireCountDown.id = "empire-countdown"
-    empireCountDown.setAttribute('style', 'white-space: pre;');
-    empireCountDown.textContent = ""+data.countdown+" days left before anihiliation"+"\n"
-    empireDisplay.appendChild(empireCountDown);
 
-    data.bounty_hunters.forEach(bountyHunter => {
-        const nDays=bountyHunter.day
-        empireCountDown.textContent +='\n'+"Bounty-Hunter on "+ bountyHunter.planet+" in "+nDays+" days";
-        console.log(empireCountDown.textContent)
-    });
+    if(data && Object.keys(data).length>0){
+        console.log("Loading empire data")
+        const empireCountDown = document.createElement('div');
+        empireCountDown.setAttribute('class','empire-val');
+        empireCountDown.id = "empire-countdown"
+        empireCountDown.setAttribute('style', 'white-space: pre;');
+        empireCountDown.textContent = ""+data.countdown+" days left before anihiliation"+"\n"
+        empireDisplay.appendChild(empireCountDown);
+    
+        data.bounty_hunters.forEach(bountyHunter => {
+            const nDays=bountyHunter.day
+            empireCountDown.textContent +='\n'+"Bounty-Hunter on "+ bountyHunter.planet+" in "+nDays+" days";
+            console.log(empireCountDown.textContent)
+        });
+    
+        button.setAttribute("class","data-nores-button") 
+        button.disabled=false
+    }else{
+        button.disabled=true     
+        button.setAttribute("class","nodata-nores-button") 
+    }
 };
 
 
@@ -93,7 +98,7 @@ const check_empire_data=data=>{
 }
 
 
-const build_graph = ()=>{
+const getTravelInfo = ()=>{
     //https://github.com/visjs/vis-network
     console.log("Building map")
     var graph_data = {}
@@ -113,7 +118,7 @@ const build_graph = ()=>{
         if(res.error){
           console.log('Could not load universe map '+JSON.stringify(res.error));
         }else{
-            graph_data = res
+            graph_data = res.universeMap
             // create a network
             var container = document.getElementById("universe-graph");
             var data = {
@@ -121,31 +126,88 @@ const build_graph = ()=>{
                 edges: new vis.DataSet(graph_data.edges)
             };
             var options = {
+                layout:{
+                    randomSeed :1
+                },
                 nodes: {
                     shape: "dot",
                     scaling: {
-                    label: {
-                        min: 8,
-                        max: 20,
-                    }
+                        label: {
+                            min: 8,
+                            max: 20,
+                        }
                     },
                     borderWidth: 4,
-                    size: 20,
                     color: {
-                        border: "#222222",
-                        background: "#666666",
+                        border: "rgb(22,22,22)",
+                        background: "rgb(66,66,66)",
                     },
-                    font: { color: "#eeeeee" }
+                    font: '20px trajan white',
                 },
                 edges: {
-                color: "lightgray",
+                    font: '16px trajan red',
+                    color: "lightgray",
+                    scaling: {
+                        label: {
+                            min: 30,
+                            max: 50,
+                        }
+                    }
                 }
             };
-            var network = new vis.Network(container, data, options);
-            console.log('Universe map loaded: '+JSON.stringify(res));
+            var network = new vis.Network(container, data,options)
+            if(debug){
+                console.log('Universe map loaded: '+JSON.stringify(res));
+            }
         }
       })      
 }
 
 
-export{empireLoader, build_graph}
+const handleSubmit = ()=>{
+    console.log("Button class = "+button.getAttribute("class"))
+    if(button.getAttribute("class")=="data-nores-button"){
+        console.log("Compute success probability")
+
+        fetch('http://localhost:8089/computeCaptureProba', 
+        {
+            credentials: 'same-origin',
+            method: 'GET',
+            headers: 
+            {
+            'Content-Type': 'application/json',
+            }
+    
+        }).then(res=>{
+            return res.json()
+        }).then(res=>{
+            if(res.error){
+                console.log('[WARN] Could not compute optimal path: '+JSON.stringify(res.error))
+              }else{
+                if(res.successProba<0.5){   
+                    success.setAttribute('class','success-red');
+                }else if(res.successProba<0.75){
+                    success.setAttribute('class','success-orange');
+                }else{
+                    success.setAttribute('class','success-green');
+                }
+                success.textContent = "Probability of success = "+ res.successProba+""
+                bestPath.textContent ="Optimal path = "+ res.bestPath  
+                button.textContent=("Reset empire data") 
+                button.setAttribute("class","data-res-button") 
+            }
+        })    
+    }else if(button.getAttribute("class")=="data-res-button"){
+        button.textContent=("Compute capture probability") 
+        button.setAttribute("class","nodata-nores-button") 
+        displayEmpireData({})
+        fileLoadedName.textContent = ""
+        success.textContent =""
+        bestPath.textContent =""
+
+    }else{    
+        console.log("Should not be here, button disabled")
+    }
+
+}
+export{empireLoader, getTravelInfo,handleSubmit}

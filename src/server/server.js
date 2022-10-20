@@ -87,27 +87,31 @@ fs.readFile(rebelsFile, function (err, data) {
             var d = row.d
             var t = row.t
 
-            universeMap.edges.push({ from: o, to: d ,width: 1, title: t});
+            sizeO = Math.random() * (30 - 5) + 5
+            sizeD = Math.random() * (30 - 5) + 5
+            console.log(sizeO)
+            console.log(sizeD)
+            universeMap.edges.push({ from: o, to: d ,width: 1, label:t});
             
             if(!planets.includes(o)){
                 planets.push(o)
                 if(o==rebelsData.departure){
-                    universeMap.nodes.push({id:o, label:o, color:{border:"green",background:"blue"}})
+                    universeMap.nodes.push({id:o, label:o, size:sizeO, color:{border:"green",background:"blue"}})
                 }else if(o==rebelsData.arrival){
-                    universeMap.nodes.push({id:o, label:o, color:{border:"brown",background:"red"}})
+                    universeMap.nodes.push({id:o, label:o, size:sizeO, color:{border:"brown",background:"red"}})
                 }else{
-                    universeMap.nodes.push({id:planets.length, label:o})
+                    universeMap.nodes.push({id:planets.length, label:o, size:sizeO})
                 }
             }
             
             if(!planets.includes(d)){
                 planets.push(d)
                 if(d==rebelsData.departure){
-                    universeMap.nodes.push({id:d, label:d, color:{border:"green",background:"blue"}})
+                    universeMap.nodes.push({id:d, label:d, size:sizeD, color:{border:"green",background:"blue"}})
                 }else if(d==rebelsData.arrival){
-                    universeMap.nodes.push({id:d, label:d, color:{border:"brown",background:"red"}})
+                    universeMap.nodes.push({id:d, label:d, size:sizeD,color:{border:"brown",background:"red"}})
                 }else{
-                    universeMap.nodes.push({id:d, label:d})
+                    universeMap.nodes.push({id:d, label:d,size:sizeD})
                 }
             }
             console.log("Distance "+o + " - " + d+" \t= "+t);
@@ -151,7 +155,12 @@ app.post('/loadEmpireData', async function (req, res) {
 
 app.get('/loadMap', async function (req, res) {
     try{
-        res.send(universeMap)  
+        var retData = {}
+        retData.universeMap = universeMap
+        retData.departure   = rebelsData.departure
+        retData.arrival     = rebelsData.arrival
+        retData.autonomy    = rebelsData.autonomy
+        res.send(retData)  
         console.log("Universe map uploaded");
     }catch(error){   
         console.log("Error when loading universe map");  
@@ -159,6 +168,34 @@ app.get('/loadMap', async function (req, res) {
     }
 })
 
+
+const buildPaths=()=>{
+    /* 
+    generate all paths reaching destination before (<=) countdown
+    ASSUMPTIONS:
+        - one may stay on the same planet (path i-->i with duration = 1)
+          e.g. a path reaching dest at day 3 while countdown = 5 ends with
+                ... - dest - dest - dest
+        - it is possible to refuel even if autonomy>0
+        - the initial autonomy = fuel tank capacity
+
+     STRATEGY:
+        - DFS of candidate paths with origin = departure, dest = destination and
+          duration = countdown
+        - no storage of visited nodes during DFS as it is possible to be N times 
+          at a planet before countdown. Stop criterion: travel_duration = countdown
+        - if staying overnight on a planet, refuel
+         */
+
+}
+
 app.get('/computeCaptureProba' , async function (req, res){
-    return 42.42
+    // TODO REMOVE STUB
+    try{
+        res.send({"bestPath":"A--1--B--2--C","successProba":0.42})
+    }catch{
+        console.log("Error when computing proba");  
+        res.send({'error':""+error})
+    }
 })
+
