@@ -172,15 +172,9 @@ const handleSubmit = ()=>{
         fetch('http://localhost:8089/computeCaptureProba', 
         {
             credentials: 'same-origin',
-            method: 'GET',
-            headers: 
-            {
-            'Content-Type': 'application/json',
-            }
-    
-        }).then(res=>{
-            return res.json()
-        }).then(res=>{
+            method: 'GET'
+        }).then(res => res.json())
+        .then(res=> {
             if(res.error){
                 console.log('[WARN] Could not compute optimal path: '+JSON.stringify(res.error))
               }else{

@@ -1,14 +1,10 @@
+//import {check_data_ok,get_best_path,find_routes} from "./C3PO.js";
+const C3PO = require("./C3PO")
 // Millenium Falcon infos. Loaded from millennium-falcon.json
 var rebelsData = null
 
 // Bounty-hunters infos. Loaded from empire.json
-var empireData = {
-    "countdown": 6, 
-    "bounty_hunters": [
-        {"planet": "Tatooine", "day": 4 },
-        {"planet": "Dagobah", "day": 5 }
-        ]
-    }
+var empireData = {}
 var universeMap={}
 universeMap.nodes = []
 universeMap.edges = []
@@ -89,8 +85,7 @@ fs.readFile(rebelsFile, function (err, data) {
 
             sizeO = Math.random() * (30 - 5) + 5
             sizeD = Math.random() * (30 - 5) + 5
-            console.log(sizeO)
-            console.log(sizeD)
+            // planet sizes : console.log(sizeO,sizeD)
             universeMap.edges.push({ from: o, to: d ,width: 1, label:t});
             
             if(!planets.includes(o)){
@@ -114,8 +109,10 @@ fs.readFile(rebelsFile, function (err, data) {
                     universeMap.nodes.push({id:d, label:d,size:sizeD})
                 }
             }
-            console.log("Distance "+o + " - " + d+" \t= "+t);
+            //console.log("Distance "+o + " - " + d+" \t= "+t);
+        
             })
+            
         }
         );
     }else{
@@ -134,8 +131,8 @@ app.post('/loadEmpireData', async function (req, res) {
     var prevData = empireData
     try{
         const newData =req.body
-        if(empireData.countdown && empireData.bounty_hunters){
-            for(let bh of empireData.bounty_hunters){
+        if(newData.countdown && newData.bounty_hunters){
+            for(let bh of newData.bounty_hunters){
                 if(!(bh.planet && bh.day)){
                     throw new Error("Incorrect value for bounty hunter. Missing planet or day.") 
                 }
@@ -146,9 +143,10 @@ app.post('/loadEmpireData', async function (req, res) {
         empireData = newData;
         res.send(newData)  
         console.log("New empire data received");
+        
     }catch(error){   
         console.log("Error when loading empire data");        
-        empireData = Object.assign({}, prevData);
+        empireData = prevData;
         res.send({'error':""+error})
     }
 })
@@ -169,31 +167,33 @@ app.get('/loadMap', async function (req, res) {
 })
 
 
-const buildPaths=()=>{
-    /* 
-    generate all paths reaching destination before (<=) countdown
-    ASSUMPTIONS:
-        - one may stay on the same planet (path i-->i with duration = 1)
-          e.g. a path reaching dest at day 3 while countdown = 5 ends with
-                ... - dest - dest - dest
-        - it is possible to refuel even if autonomy>0
-        - the initial autonomy = fuel tank capacity
-
-     STRATEGY:
-        - DFS of candidate paths with origin = departure, dest = destination and
-          duration = countdown
-        - no storage of visited nodes during DFS as it is possible to be N times 
-          at a planet before countdown. Stop criterion: travel_duration = countdown
-        - if staying overnight on a planet, refuel
-         */
-
-}
-
 app.get('/computeCaptureProba' , async function (req, res){
-    // TODO REMOVE STUB
-    try{
-        res.send({"bestPath":"A--1--B--2--C","successProba":0.42})
-    }catch{
+
+   try{
+        console.log("empire data:",empireData)
+        console.log("rebels data:",rebelsData)
+        /* TODO FIXME
+        if(C3PO.check_data_ok(empireData,rebelsData)){
+            res.send({'error':"Invalid input data"})
+            return
+        }
+        */
+        let route_list = []
+        let countdown = empireData.countdown
+        let tank_capa = rebelsData.autonomy
+        let universe_graph = C3PO.build_graph(universeMap.nodes,universeMap.edges)
+        console.log("Trying to reach ",rebelsData.arrival," from ",rebelsData.departure," in less than ",countdown, "days")
+        console.log(universe_graph)
+        C3PO.find_routes(universe_graph,rebelsData.arrival,countdown,[rebelsData.departure],countdown,route_list,tank_capa)
+        
+  
+        let meetings = Object.assign({}, ...empireData.bounty_hunters.map((x) => ({[x.day]: x.planet})));
+  
+        console.log("meetings = ",meetings)
+        let optimum = C3PO.get_best_path(universe_graph,route_list,meetings)
+        console.log("Optimum = ",optimum)
+        res.send(JSON.stringify(optimum))
+    }catch(error){
         console.log("Error when computing proba");  
         res.send({'error':""+error})
     }
