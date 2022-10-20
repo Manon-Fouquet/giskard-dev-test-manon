@@ -133,21 +133,18 @@ div{
 
 #compute-button{
     width:100%;
-    -webkit-border-radius: 5px;
-    border-radius: 5px;  
+    -webkit-border-radius: 8px;
+    border-radius: 8px;  
+    height:$labelHeight;
     margin-top: 1em;
 }
   
 #compute-button:enabled{
     background-color: $lightBrown;  
-    border-radius: 5px;  
-    -webkit-border-radius: 5px;
 }
 #compute-button:disabled{
     background-color: $grey; 
     color: $lightGrey; 
-    border-radius: 5px;  
-    -webkit-border-radius: 0px;
 }
 
 .survival-container{
