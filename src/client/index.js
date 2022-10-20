@@ -2,6 +2,11 @@ import './sass/landing_page.scss'
 import './javascript/stars.js'
 
 const reader = new FileReader();
+
+const host = process.env.HOST
+const port = process.env.PORT
+const hostName = host+":"+port
+console.log("Host is ",hostName)
 var empire_data=null
 var debug = false
 
@@ -27,9 +32,9 @@ const empireLoader = (event)=>{
             var loaded_data = this.result;
             empire_data = JSON.parse(loaded_data);
             if(check_empire_data(empire_data)){
-                fetch('http://localhost:8089/loadEmpireData', 
+                fetch(hostName+'/loadEmpireData', 
                     {
-                        credentials: 'same-origin',
+                        credentials: 'omit',
                         method: 'POST',
                         headers: 
                         {
@@ -45,13 +50,14 @@ const empireLoader = (event)=>{
                         }else{
                             console.log('Received new empire data: '+JSON.stringify(res));
                             displayEmpireData(res) ;
-                        return res;
+                            fileLoadedName.textContent = file.name +" loaded"
+                            return res;
                         }
                         
                     }); 
-                    fileLoadedName.textContent = file.name +" loaded"
-    
+                    
             }else{
+                fileLoadedName.textContent = "error while loading data"
                 console.log("Error while loading empire data, check json format.")
             }
         }})(file);
@@ -99,12 +105,11 @@ const check_empire_data=data=>{
 
 const getTravelInfo = ()=>{
     //https://github.com/visjs/vis-network
-    console.log("Building map")
+    console.log("Building map, fetching ",hostName+'/loadMap')
     var graph_data = {}
 
-    fetch('http://localhost:8089/loadMap', 
+    fetch(hostName+'/loadMap', 
     {
-        credentials: 'same-origin',
         method: 'GET',
         headers: 
         {
@@ -168,7 +173,7 @@ const handleSubmit = ()=>{
     if(button.getAttribute("class")=="data-nores-button"){
         console.log("Compute success probability")
 
-        fetch('http://localhost:8089/computeCaptureProba', 
+        fetch(hostName+'/computeCaptureProba', 
         {
             credentials: 'same-origin',
             method: 'GET'

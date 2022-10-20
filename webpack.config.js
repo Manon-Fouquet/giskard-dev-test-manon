@@ -1,7 +1,7 @@
 const path = require('path')
 const HtmlWebPackPlugin = require("html-webpack-plugin")
 const { merge } = require('webpack-merge');
-
+const webpack = require('webpack')
 //Development plugins
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 
@@ -62,6 +62,13 @@ const productionConfig = {
     },
     plugins: [
         new MiniCssExtractPlugin({filename: '[name].css'}),
+        // TODO update when in production
+        new webpack.DefinePlugin(
+            {
+                'process.env.HOST': JSON.stringify('http://localhost'),
+                'process.env.PORT': JSON.stringify('8089')
+            }
+            )
     ]
  };
  
@@ -84,7 +91,13 @@ const developmentConfig = {
             // Automatically remove all unused webpack assets on rebuild
             cleanStaleWebpackAssets: true,
             protectWebpackAssets: false
-        })
+        }),
+        new webpack.DefinePlugin(
+            {
+                'process.env.HOST': JSON.stringify('http://localhost'),
+                'process.env.PORT': JSON.stringify('8089')
+            }
+            )
     ]
 };
 
