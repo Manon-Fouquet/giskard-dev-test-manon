@@ -188,10 +188,8 @@ app.get('/computeCaptureProba' , async function (req, res){
         
   
         let meetings = Object.assign({}, ...empireData.bounty_hunters.map((x) => ({[x.day]: x.planet})));
-  
-        console.log("meetings = ",meetings)
+        console.log("Empire positions = ",meetings)
         let optimum = C3PO.get_best_path(universe_graph,route_list,meetings)
-        console.log("Optimum = ",optimum)
         res.send(JSON.stringify(optimum))
     }catch(error){
         console.log("Error when computing proba");  

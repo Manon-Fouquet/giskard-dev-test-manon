@@ -1,5 +1,41 @@
 # Developer Technical Test
 
+## FORK - Solution proposed by Manon Fouquet
+
+Problem statement can be found in the following section
+
+### How to run the software
+
+Open a first terminal to install the app
+```shell
+git clone https://github.com/Manon-Fouquet/giskard-dev-test-manon
+cd giskard-dev-test-manon
+npm install
+```
+### Running an example
+
+Infos of the rebel crew are loaded on server side when the application starts, as well as the universe map.
+
+Configure the chosen example in the file **.env** located at the root of the directory.
+It should contain a single line pointing to the example folded. 
+
+```
+FOLDER =  "./examples/example2"
+```
+
+NB: it is assumed that this folder contains a file named **millennium-falcon.json**
+
+
+Launch the server. In dev mode, server starts on port 8089.
+```shell
+npm start
+```
+
+Open a second terminal to run webpack dev-server
+```shell
+npm run dev
+```
+
 ## What are the odds?
 
 The Death Star - the Empire's ultimate weapon - is almost operational and is currently approaching the Endor planet. The countdown has started.

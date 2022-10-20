@@ -80,7 +80,6 @@ const displayEmpireData = data=>{
         data.bounty_hunters.forEach(bountyHunter => {
             const nDays=bountyHunter.day
             empireCountDown.textContent +='\n'+"Bounty-Hunter on "+ bountyHunter.planet+" in "+nDays+" days";
-            console.log(empireCountDown.textContent)
         });
     
         button.setAttribute("class","data-nores-button") 
