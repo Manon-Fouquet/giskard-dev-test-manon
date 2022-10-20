@@ -35,6 +35,14 @@ Open a second terminal to run webpack dev-server
 ```shell
 npm run dev
 ```
+### Running the CLI
+
+from root directory, try 
+
+```shell
+.\give-me-the-odds examples/example1/millennium-falcon.json .\examples\example1\empire.json
+```
+
 
 ## What are the odds?
 

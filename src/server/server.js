@@ -1,4 +1,3 @@
-//import {check_data_ok,get_best_path,find_routes} from "./C3PO.js";
 const C3PO = require("./C3PO")
 // Millenium Falcon infos. Loaded from millennium-falcon.json
 var rebelsData = null
@@ -10,8 +9,6 @@ universeMap.nodes = []
 universeMap.edges = []
 
 var planets=[]
-
-const port = 8089
 
 const path = require('path')
 
@@ -121,11 +118,15 @@ fs.readFile(rebelsFile, function (err, data) {
 });
 
 
+const port = process.env.PORT
+
 app.listen(port, function () {
-    console.log('Example app listening on port '+port+'!')
+    console.log('App listening on port '+port+'!')
 })
 
-
+app.get('/', function(req, res) {
+    res.sendFile(path.join(__dirname, "..",'client/views/index.html'));
+  });
 
 app.post('/loadEmpireData', async function (req, res) {
     var prevData = empireData
@@ -167,33 +168,16 @@ app.get('/loadMap', async function (req, res) {
 })
 
 
+
 app.get('/computeCaptureProba' , async function (req, res){
 
    try{
-        console.log("empire data:",empireData)
-        console.log("rebels data:",rebelsData)
-        /* TODO FIXME
-        if(C3PO.check_data_ok(empireData,rebelsData)){
-            res.send({'error':"Invalid input data"})
-            return
-        }
-        */
-        let route_list = []
-        let countdown = empireData.countdown
-        let tank_capa = rebelsData.autonomy
-        let universe_graph = C3PO.build_graph(universeMap.nodes,universeMap.edges)
-        console.log("Trying to reach ",rebelsData.arrival," from ",rebelsData.departure," in less than ",countdown, "days")
-        console.log(universe_graph)
-        C3PO.find_routes(universe_graph,rebelsData.arrival,countdown,[rebelsData.departure],countdown,route_list,tank_capa)
-        
-  
-        let meetings = Object.assign({}, ...empireData.bounty_hunters.map((x) => ({[x.day]: x.planet})));
-        console.log("Empire positions = ",meetings)
-        let optimum = C3PO.get_best_path(universe_graph,route_list,meetings)
+        optimum = C3PO.compute_proba(empireData,rebelsData,universeMap)
         res.send(JSON.stringify(optimum))
     }catch(error){
         console.log("Error when computing proba");  
         res.send({'error':""+error})
     }
 })
+
 

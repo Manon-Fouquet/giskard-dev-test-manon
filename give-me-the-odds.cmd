@@ -1,0 +1,1 @@
+node ./src/server/CLI.js %1 %2

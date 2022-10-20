@@ -1,4 +1,10 @@
 
+var debug = false
+const log_debug=(msg)=>{
+    if(debug){
+        console.log(msg)
+    }
+}
 //https://stackoverflow.com/questions/7538519/how-to-get-subarray-from-array
 Array.prototype.subarray = function(start, end) {
     if (!end) { end = -1; } 
@@ -72,7 +78,7 @@ const eval_proba = (graph,path,empire_data,captureProba =0.1) =>{
           }
           return Math.pow(1.0-captureProba,n_meetings)
     }catch{
-        console.log("[ERROR] could not compute proba from array",path)
+        log_debug("[ERROR] could not compute proba from array",path)
     }
     
      
@@ -84,6 +90,21 @@ const eval_proba = (graph,path,empire_data,captureProba =0.1) =>{
 #   PATH FINDER   #
 ###################    
 */
+
+const compute_proba = (empireData,rebelsData,universeMap) =>{
+    let route_list = []
+    let countdown = empireData.countdown
+    let tank_capa = rebelsData.autonomy
+    let universe_graph = build_graph(universeMap.nodes,universeMap.edges)
+    log_debug("Trying to reach ",rebelsData.arrival," from ",rebelsData.departure," in less than ",countdown, "days")
+    log_debug(universe_graph)
+    find_routes(universe_graph,rebelsData.arrival,countdown,[rebelsData.departure],countdown,route_list,tank_capa)
+    
+
+    let meetings = Object.assign({}, ...empireData.bounty_hunters.map((x) => ({[x.day]: x.planet})));
+    log_debug("Empire positions = ",meetings)
+    return get_best_path(universe_graph,route_list,meetings)
+}
 
 const find_routes = (graph,end,countdown,current_path,current_autonomy,route_list,tank_capa=6) =>{
 /* 
@@ -119,7 +140,7 @@ ASSUMPTIONS:
             // Not a valid path, planet destroyed
             continue
         }else if(d_to_next===undefined){
-            console.log("ERROR")
+            log_debug("ERROR")
         }
 
         let autonomy
@@ -136,6 +157,7 @@ ASSUMPTIONS:
 }
 
 const get_best_path =(graph,route_list,meetings)=>{
+    log_debug("Searching best path among ",route_list.length)
     if(route_list.length>0){
         max_proba = 0
         min_proba = 1
@@ -154,9 +176,9 @@ const get_best_path =(graph,route_list,meetings)=>{
             }
         }
         
-        console.log(route_list.length," routes found.")
-        console.log("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
-        console.log("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
+        log_debug(route_list.length," routes found.")
+        log_debug("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
+        log_debug("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
         return {"bestPath":get_path_as_string(graph,best_route),"successProba":max_proba}
     }
 }
@@ -166,18 +188,18 @@ const check_data_ok=(empireData,rebelsData)=>{
         for(let bh of empireData.bounty_hunters){
             if(!(bh.planet && bh.day)){
                 
-                console.log("issue with bounty hunter ",bh)
+                log_debug("issue with bounty hunter ",bh)
                 return false
             }
         }
     }else{
         
-        console.log("issue with empire data ",empireData)
+        log_debug("issue with empire data ",bh)
         return false
     }
     let check_rebels = (rebelsData && rebelsData.departure && rebelsData.arrival && rebelsData.autonomy)
     if(!check_rebels){
-        console.log(rebelsData)
+        log_debug(rebelsData)
     }
     return check_rebels
 }
@@ -234,20 +256,20 @@ const perform_unit_tests = ()=>{
     let path_to_endor = ['Tatooine', 'Hoth', 'Endor', 'Hoth', 'Hoth', 'Endor']
 
 
-    console.log("######## UNIT TESTS ############")
-    console.log(get_path_as_string(graph,path_to_endor),"\n\t travel time = ",get_travel_time(graph,path_to_endor),", success proba = " ,eval_proba(graph,path_to_endor,meetings))
+    log_debug("######## UNIT TESTS ############")
+    log_debug(get_path_as_string(graph,path_to_endor),"\n\t travel time = ",get_travel_time(graph,path_to_endor),", success proba = " ,eval_proba(graph,path_to_endor,meetings))
 
-    console.log("Concatenate empty array:",path_to_endor.concat([]))
+    log_debug("Concatenate empty array:",path_to_endor.concat([]))
 
-    console.log(graph)
+    log_debug(graph)
 
     let route_list = []
     let countdown = 10
     let tank_capa = 6
     find_routes(graph,"Endor",countdown,["Tatooine"],countdown,route_list,tank_capa)
 
-    console.log("Routes from Tatooine to Endor in less than ",countdown)
-    console.log(route_list)
+    log_debug("Routes from Tatooine to Endor in less than ",countdown)
+    log_debug(route_list)
     if(route_list.length>0){
         max_proba = 0
         min_proba = 1
@@ -266,14 +288,14 @@ const perform_unit_tests = ()=>{
             }
         }
         
-        console.log(route_list.length," routes found.")
-        console.log("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
-        console.log("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
+        log_debug(route_list.length," routes found.")
+        log_debug("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
+        log_debug("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
 
     }else{
-        console.log("No route found")
+        log_debug("No route found")
     } 
 }
 //perform_unit_tests()
 
-module.exports = {check_data_ok,build_graph,find_routes,get_best_path}
+module.exports = {check_data_ok,build_graph,find_routes,get_best_path,compute_proba,log_debug}
