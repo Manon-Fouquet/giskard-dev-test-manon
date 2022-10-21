@@ -11,7 +11,7 @@ const OptimizeCSSAssetsPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
 const commonConfig = {
-    entry: './src/client/index.js',
+    entry: './src/client/C3PO.js',
     devtool: 'source-map',
     output: {
         path: path.join(__dirname, 'dist'),

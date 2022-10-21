@@ -1,7 +1,7 @@
 {
     "name": "falcon",
     "version": "0.0.0",
-    "main": "index.js",
+    "main": "C3PO.js",
     "scripts": {
         "build": "webpack --env=mode=production",
         "dev": "webpack-dev-server  --env=mode=development --open",

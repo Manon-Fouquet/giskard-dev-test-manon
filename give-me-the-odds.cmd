@@ -1,1 +1,1 @@
-node ./src/server/CLI.js %1 %2
+node ./src/server/R2D2.js %1 %2

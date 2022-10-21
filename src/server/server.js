@@ -1,4 +1,4 @@
-const C3PO = require("./C3PO")
+const mf_computer = require("./mf_computer")
 // Millenium Falcon infos. Loaded from millennium-falcon.json
 var rebelsData = null
 
@@ -167,12 +167,10 @@ app.get('/loadMap', async function (req, res) {
     }
 })
 
-
-
 app.get('/computeCaptureProba' , async function (req, res){
 
    try{
-        optimum = C3PO.compute_proba(empireData,rebelsData,universeMap)
+        optimum = mf_computer.compute_proba(empireData,rebelsData,universeMap)
         res.send(JSON.stringify(optimum))
     }catch(error){
         console.log("Error when computing proba");  
