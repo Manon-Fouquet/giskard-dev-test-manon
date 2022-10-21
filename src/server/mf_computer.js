@@ -215,17 +215,19 @@ const find_routes = (graph,end,countdown,current_path,current_autonomy,route_lis
     }
     
     for (const next_planet in graph[current_planet]){
+        
         let d_to_next = graph[current_planet][next_planet]
 
         if  (d_to_next>countdown){
             // Not a valid path, planet destroyed
             continue
-        }else if(d_to_next===undefined){
+        }else if(next_planet!=current_planet && current_autonomy<d_to_next){
+            continue
+        } else if(d_to_next===undefined){
             server_utils.log_debug("ERROR")
         }
 
-        let autonomy
-        if  (next_planet==current_planet || current_autonomy<d_to_next){
+        if  (next_planet==current_planet){
             //need to refuel, or refuel anyway if staying overnight
             autonomy=tank_capa
         }else{
