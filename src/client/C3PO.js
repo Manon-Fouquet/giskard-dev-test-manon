@@ -180,7 +180,7 @@ const handleSubmit = ()=>{
         }).then(res => res.json())
         .then(res=> {
             if(res.error){
-                console.log('[WARN] Could not compute optimal path: '+JSON.stringify(res.error))
+                console.log('Could not compute optimal path: '+JSON.stringify(res.error))
               }else{
                 if(res.successProba<0.5){   
                     success.setAttribute('class','success-red');

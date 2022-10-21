@@ -1,14 +1,13 @@
 const mf_computer = require("./mf_computer")
+const mf_utils = require("./server_utils")
+
 // Millenium Falcon infos. Loaded from millennium-falcon.json
-var rebelsData = null
+var rebelsDataOK = false
+var empireDataOK = false
+var mapOK = false
 
 // Bounty-hunters infos. Loaded from empire.json
-var empireData = {}
-var universeMap={}
-universeMap.nodes = []
-universeMap.edges = []
-
-var planets=[]
+var appData={}
 
 const path = require('path')
 
@@ -42,80 +41,42 @@ app.use(bodyParser.json());
 app.use(express.static('dist'))
 
 
-const sqlite3 = require('sqlite3')
 // Load environment variables, especially API keys
 const dotenv = require('dotenv');
 const { json } = require('body-parser')
 dotenv.config();
 
+
+// Parsing rebels file
 const rebelsFile = path.join(process.cwd(), process.env.FOLDER,"millennium-falcon.json")
-console.log("Rebels file = "+rebelsFile)
+console.log("Parsing rebels file = "+rebelsFile)
 
-fs.readFile(rebelsFile, function (err, data) {
-    if (err) {
-      throw err;
-    }
-    rebelsData = JSON.parse(data)
-    if (rebelsData && rebelsData.departure && rebelsData.arrival && rebelsData.routes_db && rebelsData.autonomy){
+try{
+    let rebelsData = server_utils.read_json_data(rebelsFile)
+    console.log(rebelsData)
+    rebelsDataOK = rebelsData && rebelsData.departure && rebelsData.arrival && rebelsData.routes_db && rebelsData.autonomy
+    if(rebelsDataOK){
+        appData.rebelsData = rebelsData
         console.log("Rebels data loaded, Millennium Falcon currently at "+rebelsData.departure+" has "+rebelsData.autonomy+" days left to reach "+rebelsData.arrival)
-        
+    
+        // Parsing DB
         const universeDBFile = path.join(process.cwd(), process.env.FOLDER, rebelsData.routes_db)
-        console.log("Loading routes from "+universeDBFile)
-        let db = new sqlite3.Database(universeDBFile, (err) => {
-            if (err) {
-                console.error(err.message);
-            }
-                console.log('Connexion to route mapper...OK!');
-
-            });
+        server_utils.log_debug("Loading routes from "+universeDBFile)
+        retData = server_utils.build_map_from_db(universeDBFile,rebelsData.departure,rebelsData.arrival);
         
-        db.serialize(() => {
+        if(retData){
+            mapOK = true
             
-            db.each(`SELECT ORIGIN as o, DESTINATION as d, TRAVEL_TIME as t
-                    FROM ROUTES`, (err, row) => {
-            if (err) {
-                console.error(err.message);
-            }
-            var o = row.o
-            var d = row.d
-            var t = row.t
-
-            sizeO = Math.random() * (30 - 5) + 5
-            sizeD = Math.random() * (30 - 5) + 5
-            // planet sizes : console.log(sizeO,sizeD)
-            universeMap.edges.push({ from: o, to: d ,width: 1, label:t});
-            
-            if(!planets.includes(o)){
-                planets.push(o)
-                if(o==rebelsData.departure){
-                    universeMap.nodes.push({id:o, label:o, size:sizeO, color:{border:"green",background:"blue"}})
-                }else if(o==rebelsData.arrival){
-                    universeMap.nodes.push({id:o, label:o, size:sizeO, color:{border:"brown",background:"red"}})
-                }else{
-                    universeMap.nodes.push({id:planets.length, label:o, size:sizeO})
-                }
-            }
-            
-            if(!planets.includes(d)){
-                planets.push(d)
-                if(d==rebelsData.departure){
-                    universeMap.nodes.push({id:d, label:d, size:sizeD, color:{border:"green",background:"blue"}})
-                }else if(d==rebelsData.arrival){
-                    universeMap.nodes.push({id:d, label:d, size:sizeD,color:{border:"brown",background:"red"}})
-                }else{
-                    universeMap.nodes.push({id:d, label:d,size:sizeD})
-                }
-            }
-            //console.log("Distance "+o + " - " + d+" \t= "+t);
-        
-            })
-            
+            appData.universeMap = retData.universeMap
+            appData.planets = retData.planets
         }
-        );
+
     }else{
-        console.log("Failed loading Millennium Falcon data.")
+        console.log("Incorrect fields in rebel file "+rebelsFile)
     }
-});
+}catch{
+    console.log("Could not read rebels data from "+rebelsFile)
+}
 
 
 const port = process.env.PORT
@@ -126,10 +87,10 @@ app.listen(port, function () {
 
 app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname, "..",'client/views/index.html'));
-  });
+});
 
 app.post('/loadEmpireData', async function (req, res) {
-    var prevData = empireData
+    var prevData = appData.empireData
     try{
         const newData =req.body
         if(newData.countdown && newData.bounty_hunters){
@@ -141,7 +102,7 @@ app.post('/loadEmpireData', async function (req, res) {
         }else{
             throw new Error("Missing mandatory field countdown or bounty_hunters")
         }
-        empireData = newData;
+        appData.empireData = newData;
         res.send(newData)  
         console.log("New empire data received");
         
@@ -155,10 +116,10 @@ app.post('/loadEmpireData', async function (req, res) {
 app.get('/loadMap', async function (req, res) {
     try{
         var retData = {}
-        retData.universeMap = universeMap
-        retData.departure   = rebelsData.departure
-        retData.arrival     = rebelsData.arrival
-        retData.autonomy    = rebelsData.autonomy
+        retData.universeMap = appData.universeMap
+        retData.departure   = appData.rebelsData.departure
+        retData.arrival     = appData.rebelsData.arrival
+        retData.autonomy    = appData.rebelsData.autonomy
         res.send(retData)  
         console.log("Universe map uploaded");
     }catch(error){   
@@ -170,7 +131,7 @@ app.get('/loadMap', async function (req, res) {
 app.get('/computeCaptureProba' , async function (req, res){
 
    try{
-        optimum = mf_computer.compute_proba(empireData,rebelsData,universeMap)
+        optimum = mf_computer.compute_proba(appData.empireData,appData.rebelsData,appData.universeMap)
         res.send(JSON.stringify(optimum))
     }catch(error){
         console.log("Error when computing proba");  

@@ -1,10 +1,11 @@
+server_utils = require('./server_utils')
+/*
+#####################
+#   AUX FUNCTIONS   #
+#####################    
+*/
 
-var debug = false
-const log_debug=(msg)=>{
-    if(debug){
-        console.log(msg)
-    }
-}
+
 //https://stackoverflow.com/questions/7538519/how-to-get-subarray-from-array
 Array.prototype.subarray = function(start, end) {
     if (!end) { end = -1; } 
@@ -12,14 +13,9 @@ Array.prototype.subarray = function(start, end) {
 };
 
 const build_graph=(nodes,edges)=>{
-    /*let universe_graph = nodes.map(obj=>{
-        let rObj = {};
-        let planet = obj.id;
-        rObj[planet]={}
-        rObj[planet][planet]=1;
-        return rObj;
-    })*/
-
+    /**
+     * Returns an adjacency map (with distances to neighbors)
+     */
     let universe_graph = Object.assign({}, ...nodes.map((x) => ({[x.id]: {}})));
    
     for (let [n, l] of Object.entries(universe_graph)) {
@@ -38,6 +34,9 @@ const build_graph=(nodes,edges)=>{
 }
 
 const get_travel_time=(graph,visited_planets)=>{
+    /**
+     * Compute the duration of a given path
+     */
     let d=0
     if (visited_planets.length==0){
         return d
@@ -53,8 +52,11 @@ const get_travel_time=(graph,visited_planets)=>{
 }
 
 const get_path_as_string = (graph,visited_planets) =>{
-    if  (visited_planets.length==0){
-        return ""
+    /**
+     * Returns a string description of a path
+     */
+    if  (visited_planets==null ||visited_planets.length==0 ){
+        return "No path found"
     }
     let ret_str = visited_planets[0]
     let previous = ret_str
@@ -65,8 +67,11 @@ const get_path_as_string = (graph,visited_planets) =>{
     return ret_str
 }
 
-// Compute the number of encounters along a path and deduces success probability
-const eval_proba = (graph,path,empire_data,captureProba =0.1) =>{
+const eval_proba_on_path = (graph,path,empire_data,captureProba =0.1) =>{
+     /**
+     * Compute the probability of success given a path, info on Empire presence
+     * and a capture probability
+     */
     let cum_d = 0
     let n_meetings=0
     try{
@@ -78,12 +83,66 @@ const eval_proba = (graph,path,empire_data,captureProba =0.1) =>{
           }
           return Math.pow(1.0-captureProba,n_meetings)
     }catch{
-        log_debug("[ERROR] could not compute proba from array",path)
+        server_utils.log_debug("[ERROR] could not compute proba from array",path)
+    } 
+}
+
+
+const get_best_path =(graph,route_list,meetings)=>{
+    /**
+     * Given a list of routes and presence of the Empire at some given days
+     * returns a map with
+     *      - bestPath: string description of optimal path
+     *      - successProba: success probability on the optimal path
+     */
+    server_utils.log_debug("Searching best path among ",route_list.length)
+    let max_proba = 0
+    let min_proba = 1
+    let best_route = null
+    let worst_route = null
+
+    if(route_list.length>0){
+        for (const r of route_list){
+            p = eval_proba_on_path(graph,r,meetings)
+            if  (p>max_proba || best_route===null ){
+                max_proba=p
+                best_route = r
+                }
+            
+            if (p<min_proba || worst_route===null ){
+                min_proba = p
+                worst_route =r
+            }
+        }
+        
+        server_utils.log_debug(route_list.length," routes found.")
+        server_utils.log_debug("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
+        server_utils.log_debug("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
     }
-    
-     
+    return {"bestPath":get_path_as_string(graph,best_route),"successProba":max_proba}
+
+}
+
+
+const check_data_ok=(empireData,rebelsData)=>{
+    if(empireData.countdown && empireData.bounty_hunters){
+        for(let bh of empireData.bounty_hunters){
+            if(!(bh.planet && bh.day)){         
+                server_utils.log_debug("issue with bounty hunter ",bh)
+                return false
+            }
+        }
+    }else{ 
+        server_utils.log_debug("issue with empire data ",bh)
+        return false
     }
 
+    let check_rebels = (rebelsData && rebelsData.departure && rebelsData.arrival && rebelsData.autonomy)
+    if(!check_rebels){
+        server_utils.log_debug(rebelsData)
+    }
+    return check_rebels
+}
 
 /*
 ###################
@@ -92,38 +151,60 @@ const eval_proba = (graph,path,empire_data,captureProba =0.1) =>{
 */
 
 const compute_proba = (empireData,rebelsData,universeMap) =>{
+    /**
+     * Main function: 
+     */
     let route_list = []
     let countdown = empireData.countdown
     let tank_capa = rebelsData.autonomy
     let universe_graph = build_graph(universeMap.nodes,universeMap.edges)
-    log_debug("Trying to reach ",rebelsData.arrival," from ",rebelsData.departure," in less than ",countdown, "days")
-    log_debug(universe_graph)
-    find_routes(universe_graph,rebelsData.arrival,countdown,[rebelsData.departure],countdown,route_list,tank_capa)
     
+    server_utils.log_debug("Trying to reach ",rebelsData.arrival," from ",rebelsData.departure," in less than ",countdown, "days")
+    server_utils.log_debug(universe_graph)
 
     let meetings = Object.assign({}, ...empireData.bounty_hunters.map((x) => ({[x.day]: x.planet})));
-    log_debug("Empire positions = ",meetings)
+    server_utils.log_debug("Empire positions = ",meetings)
+
+    // DFS to reach arrival before countdown
+    find_routes(universe_graph,rebelsData.arrival,countdown,[rebelsData.departure],countdown,route_list,tank_capa)
+      
     return get_best_path(universe_graph,route_list,meetings)
 }
 
 const find_routes = (graph,end,countdown,current_path,current_autonomy,route_list,tank_capa=6) =>{
-/* 
-generate all paths reaching destination before (<=) countdown
-ASSUMPTIONS:
-    - one may stay on the same planet (path i-->i with duration = 1)
-        e.g. a path reaching dest at day 3 while countdown = 5 ends with
-            ... - dest - dest - dest
-    - it is possible to refuel even if autonomy>0
-    - the initial autonomy = fuel tank capacity
+/**
+ * Generate all paths reaching destination before (<=) countdown
+ * route_list should be provided as an empty list and will contain all routes when 
+ * the function terminates
+ * 
+ * INPUTS:
+ *  - graph             : the adjacency list representing the universe routes
+ *  - end               : name of planet to reach
+ *  - countdown         : number of days before destruction of the planet
+ *  - current_path      : list initialized to ["start planet"] during first call
+ *  - current_autonomy  : autonomy of the Millennium Falcon in days
+ *  - route_list        : list containing all valid routes found so far
+ *  - tank_capacity     : maximum autonomy in days (when fuel tank is full)
+ * 
+ * 
+ * ASSUMPTIONS:
+ *  - one may stay on the same planet (path i-->i with duration = 1)
+ *      e.g. a path reaching dest at day 3 while countdown = 5 ends with
+ *      ... - dest - dest - dest
+ *  - it is possible to refuel even if autonomy>0
+ * - the initial autonomy = fuel tank capacity
+ */
+  
 
-    STRATEGY:
+
+    /* STRATEGY 
     - DFS of candidate paths with origin = departure, dest = destination and
         duration = countdown
     - no storage of visited nodes during DFS as it is possible to be N times 
         at a planet before countdown. Stop criterion: travel_duration = countdown
     - if staying overnight on a planet, refuel
     */
-    
+
     let current_planet = current_path[current_path.length-1]
     if  (countdown==0){
         if  (current_planet==end){
@@ -140,7 +221,7 @@ ASSUMPTIONS:
             // Not a valid path, planet destroyed
             continue
         }else if(d_to_next===undefined){
-            log_debug("ERROR")
+            server_utils.log_debug("ERROR")
         }
 
         let autonomy
@@ -156,53 +237,6 @@ ASSUMPTIONS:
     return []
 }
 
-const get_best_path =(graph,route_list,meetings)=>{
-    log_debug("Searching best path among ",route_list.length)
-    if(route_list.length>0){
-        max_proba = 0
-        min_proba = 1
-        best_route = null
-        worst_route = null
-        for (const r of route_list){
-            p = eval_proba(graph,r,meetings)
-            if  (p>max_proba || best_route===null ){
-                max_proba=p
-                best_route = r
-                }
-            
-            if (p<min_proba || worst_route===null ){
-                min_proba = p
-                worst_route =r
-            }
-        }
-        
-        log_debug(route_list.length," routes found.")
-        log_debug("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
-        log_debug("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
-        return {"bestPath":get_path_as_string(graph,best_route),"successProba":max_proba}
-    }
-}
-
-const check_data_ok=(empireData,rebelsData)=>{
-    if(empireData.countdown && empireData.bounty_hunters){
-        for(let bh of empireData.bounty_hunters){
-            if(!(bh.planet && bh.day)){
-                
-                log_debug("issue with bounty hunter ",bh)
-                return false
-            }
-        }
-    }else{
-        
-        log_debug("issue with empire data ",bh)
-        return false
-    }
-    let check_rebels = (rebelsData && rebelsData.departure && rebelsData.arrival && rebelsData.autonomy)
-    if(!check_rebels){
-        log_debug(rebelsData)
-    }
-    return check_rebels
-}
 
 /*
 ###################
@@ -256,27 +290,27 @@ const perform_unit_tests = ()=>{
     let path_to_endor = ['Tatooine', 'Hoth', 'Endor', 'Hoth', 'Hoth', 'Endor']
 
 
-    log_debug("######## UNIT TESTS ############")
-    log_debug(get_path_as_string(graph,path_to_endor),"\n\t travel time = ",get_travel_time(graph,path_to_endor),", success proba = " ,eval_proba(graph,path_to_endor,meetings))
+    server_utils.log_debug("######## UNIT TESTS ############")
+    server_utils.log_debug(get_path_as_string(graph,path_to_endor),"\n\t travel time = ",get_travel_time(graph,path_to_endor),", success proba = " ,eval_proba_on_path(graph,path_to_endor,meetings))
 
-    log_debug("Concatenate empty array:",path_to_endor.concat([]))
+    server_utils.log_debug("Concatenate empty array:",path_to_endor.concat([]))
 
-    log_debug(graph)
+    server_utils.log_debug(graph)
 
     let route_list = []
     let countdown = 10
     let tank_capa = 6
     find_routes(graph,"Endor",countdown,["Tatooine"],countdown,route_list,tank_capa)
 
-    log_debug("Routes from Tatooine to Endor in less than ",countdown)
-    log_debug(route_list)
+    server_utils.log_debug("Routes from Tatooine to Endor in less than ",countdown)
+    server_utils.log_debug(route_list)
     if(route_list.length>0){
         max_proba = 0
         min_proba = 1
         best_route = null
         worst_route = null
         for (const r of route_list){
-            p = eval_proba(graph,r,meetings)
+            p = eval_proba_on_path(graph,r,meetings)
             if  (p>max_proba || best_route===null ){
                 max_proba=p
                 best_route = r
@@ -288,14 +322,14 @@ const perform_unit_tests = ()=>{
             }
         }
         
-        log_debug(route_list.length," routes found.")
-        log_debug("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
-        log_debug("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
+        server_utils.log_debug(route_list.length," routes found.")
+        server_utils.log_debug("Best route is ",get_path_as_string(graph,best_route), " with proba of success = ",max_proba)
+        server_utils.log_debug("Worst route is ",get_path_as_string(graph,worst_route), " with proba of success = ",min_proba)
 
     }else{
-        log_debug("No route found")
+        server_utils.log_debug("No route found")
     } 
 }
 //perform_unit_tests()
 
-module.exports = {check_data_ok,build_graph,find_routes,get_best_path,compute_proba,log_debug}
+module.exports = {check_data_ok,build_graph,find_routes,get_best_path,compute_proba}
