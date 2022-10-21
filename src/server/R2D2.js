@@ -34,6 +34,7 @@ if (rebelsDataOK){
     if(dbData){  
         let proba_success = mf_computer.compute_proba(empireData,rebelsData,dbData.universeMap)
         console.log(proba_success.successProba)
+        //console.log(proba_success.bestPath)
     }else{
         console.log("Could not load map from database")
     }

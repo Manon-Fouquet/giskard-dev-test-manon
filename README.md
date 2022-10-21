@@ -11,30 +11,27 @@ Open a first terminal to install the app
 git clone https://github.com/Manon-Fouquet/giskard-dev-test-manon
 cd giskard-dev-test-manon
 npm install
+npm run build
 ```
 ### Running an example
 
 Infos of the rebel crew are loaded on server side when the application starts, as well as the universe map.
 
 Configure the chosen example in the file **.env** located at the root of the directory.
-It should contain a single line pointing to the example folded. 
+It should define an environement variable FOLDER.
 
 ```
 FOLDER =  "./examples/example2"
 ```
 
-NB: it is assumed that this folder contains a file named **millennium-falcon.json**
+NB: it is assumed that this folder contains a file named **millennium-falcon.json** containing rebels'data.
 
 
-Launch the server. In dev mode, server starts on port 8089.
+Start the Millenium Falcon computer (running by default on port 8089).
 ```shell
 npm start
 ```
 
-Open a second terminal to run webpack dev-server
-```shell
-npm run dev
-```
 ### Running the CLI
 
 from root directory, try 
